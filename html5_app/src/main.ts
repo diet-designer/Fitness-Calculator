@@ -63,6 +63,20 @@ const sumCals = document.querySelector<HTMLElement>('#sum-cals')!
 const sumOver = document.querySelector<HTMLElement>('#sum-over')!
 const sumChange = document.querySelector<HTMLElement>('#sum-change')!
 
+// Goals Tab
+const inputStartDate = document.querySelector<HTMLInputElement>('#start-date')!
+const inputGoalAmount = document.querySelector<HTMLInputElement>('#goal-amount')!
+const spanGoalUnit = document.querySelector<HTMLElement>('#goal-unit')!
+const spanRecalcUnit = document.querySelector<HTMLElement>('#recalc-unit')!
+const spanDaysNeeded = document.querySelector<HTMLElement>('#days-needed')!
+const spanEndDate = document.querySelector<HTMLElement>('#end-date')!
+const spanChangeRate = document.querySelector<HTMLElement>('#change-rate')!
+const inputGoalWorkouts = document.querySelector<HTMLInputElement>('#goal-workouts')!
+const inputGoalDaysCycle = document.querySelector<HTMLInputElement>('#goal-days-cycle')!
+const inputRecalcWeight = document.querySelector<HTMLInputElement>('#recalc-weight')!
+const inputMaintainRate = document.querySelector<HTMLInputElement>('#maintain-rate')!
+const goalTableBody = document.querySelector<HTMLElement>('#goal-table-body')!
+
 // Macro Areas
 const divRestMacros = document.querySelector<HTMLElement>('#rest-macros')!
 const divWorkoutMacros = document.querySelector<HTMLElement>('#workout-macros')!
@@ -86,6 +100,10 @@ function init() {
   user.heightin = 10 
   user.activity = 1.2
   user.waist = 32
+  
+  // Set default start date to today
+  const today = new Date();
+  inputStartDate.valueAsDate = today;
   
   // Tab Logic
   setupTabs()
@@ -114,6 +132,11 @@ function setupTabs() {
                     c.classList.add('active');
                 }
             });
+            
+            // If switching to goals tab, calculate goals
+            if (target === 'goals') {
+                calcGoals();
+            }
         });
     });
 }
@@ -140,7 +163,11 @@ function setupListeners() {
       inputRestPSlider, inputRestCSlider, inputRestFSlider,
       inputWorkoutPSlider, inputWorkoutCSlider, inputWorkoutFSlider
   ];
-  sliders.forEach(s => s.addEventListener('input', (e) => handleSliderChange(e)));
+  sliders.forEach(s => s.addEventListener('input', () => handleSliderChange()));
+  
+  // Goals inputs
+  const goalInputs = [inputStartDate, inputGoalAmount, inputGoalWorkouts, inputGoalDaysCycle, inputRecalcWeight, inputMaintainRate];
+  goalInputs.forEach(input => input.addEventListener('input', () => calcGoals()));
 }
 
 function setUnit(unit: 'imperial' | 'metric') {
@@ -152,6 +179,8 @@ function setUnit(unit: 'imperial' | 'metric') {
     divHeightImperial.classList.add('hidden')
     unitWeight.textContent = '(kg)'
     unitWaist.textContent = '(cm)'
+    spanGoalUnit.textContent = '(kg)'
+    spanRecalcUnit.textContent = '(kg)'
   } else if (unit === 'imperial' && user.metric) {
     user.toImperial()
     btnImperial.classList.add('active')
@@ -160,6 +189,8 @@ function setUnit(unit: 'imperial' | 'metric') {
     divHeightMetric.classList.add('hidden')
     unitWeight.textContent = '(lbs)'
     unitWaist.textContent = '(in)'
+    spanGoalUnit.textContent = '(lbs)'
+    spanRecalcUnit.textContent = '(lbs)'
   }
   updateInputsFromState()
   calculate()
@@ -201,7 +232,6 @@ function handleInput(e: Event) {
   if (target === inputBf) {
       if (inputBf.value) {
           user.bfpct = parseFloat(inputBf.value);
-          // Recalc LBM/Fat manually based on this
           user.fat = (user.bfpct / 100) * user.weight;
           user.lbm = user.weight - user.fat;
       } else {
@@ -226,14 +256,13 @@ function handleInput(e: Event) {
         updateCycleSplit(cycle);
       }
   } else if (target === inputRestTdeePct || target === inputWorkoutTdeePct) {
-      // If manually changing percentages, switch to custom
       inputCycle.value = 'custom';
   }
 
   calculate()
 }
 
-function handleSliderChange(e: Event) {
+function handleSliderChange() {
     isManualEdit = true;
     inputCycle.value = 'custom';
     
@@ -314,7 +343,6 @@ function calculate() {
   
   if (!isManualEdit) {
       // 2. Macro Calcs (AUTO MODE)
-      // Handle Protein Method
       user.proteinFormula = inputProteinMethod.value;
       
       // Handle Percents
@@ -322,16 +350,8 @@ function calculate() {
       const workPct = parseFloat(inputWorkoutTdeePct.value) || 0;
       user.setDaySplit(restPct, workPct);
 
-      // Handle Sliders Sync with Auto
-      // We rely on user.restCollection populated by setDaySplit -> calcMacros
-      user.setMacroSplit(50, 50, 50, 50); // Default split if not manual? Or should we remove this if custom?
-      // Actually we probably want to support the old Split logic OR the new Slider logic.
-      // For now, let's say "Standard Recomp" sets default 50/50 split. 
-      // If we want detailed split control without sliders, we'd keep the Split Dropdown, but user said remove it.
-      // So detailed split control is now MANUAL ONLY via sliders.
+      user.setMacroSplit(50, 50, 50, 50);
       
-      // So here, we just run standard calcMacros which sets P/C/F based on defaults/old logic
-      // And then we update the sliders to match the calculated grams.
       updateSlidersFromCalculated();
   }
 
@@ -375,11 +395,8 @@ function updateSlidersFromCalculated() {
 }
 
 function updatePieChart(element: HTMLElement, pPct: number, cPct: number, fPct: number) {
-    // Create conic gradient based on percentages
-    // Start at -90deg to start from top
-    const pEnd = pPct * 3.6; // Convert % to degrees
+    const pEnd = pPct * 3.6;
     const cEnd = pEnd + (cPct * 3.6);
-    const fEnd = cEnd + (fPct * 3.6);
     
     element.style.background = `conic-gradient(
         from -90deg,
@@ -388,7 +405,7 @@ function updatePieChart(element: HTMLElement, pPct: number, cPct: number, fPct: 
         #10b981 ${pEnd}deg,
         #10b981 ${cEnd}deg,
         #f59e0b ${cEnd}deg,
-        #f59e0b ${fEnd}deg
+        #f59e0b 360deg
     )`;
 }
 
@@ -450,6 +467,161 @@ function renderSummary() {
 
     sumChange.textContent = `${sign}${weekChange.toFixed(2)}`;
     sumChange.style.color = weekChange < 0 ? 'var(--success)' : 'var(--warning)';
+}
+
+function calcGoals() {
+    const startDate = inputStartDate.valueAsDate;
+    if (!startDate) return;
+    
+    const goalAmount = parseFloat(inputGoalAmount.value) || 0;
+    if (goalAmount === 0) return;
+    
+    const cycleDays = parseInt(inputGoalDaysCycle.value) || 7;
+    const cycleWorkouts = parseInt(inputGoalWorkouts.value) || 3;
+    const recalcEvery = parseFloat(inputRecalcWeight.value) || 0;
+    const maintainRate = inputMaintainRate.checked;
+    
+    // Calculate cycle change
+    const cycleRestDays = cycleDays - cycleWorkouts;
+    const cycleTdee = user.tdee * cycleDays;
+    const cycleCals = (cycleRestDays * user.restcals) + (cycleWorkouts * user.workoutcals);
+    const cycleCalDiff = cycleCals - cycleTdee;
+    const cycleChange = user.metric ? (cycleCalDiff / 3500 / 2.2) : (cycleCalDiff / 3500);
+    
+    if (cycleChange === 0) {
+        spanDaysNeeded.textContent = 'N/A';
+        spanEndDate.textContent = 'N/A';
+        spanChangeRate.textContent = '0';
+        goalTableBody.innerHTML = '<tr><td colspan="7">No change with current settings</td></tr>';
+        return;
+    }
+    
+    // Display change rate
+    spanChangeRate.textContent = cycleChange.toFixed(2) + (user.metric ? ' kg' : ' lbs');
+    spanChangeRate.style.color = cycleChange < 0 ? 'var(--success)' : 'var(--warning)';
+    
+    // Create projection
+    const projectionData: any[] = [];
+    let currentDate = new Date(startDate);
+    let currentWeight = user.weight;
+    let currentLbm = user.lbm;
+    let currentFat = user.fat;
+    let currentBfpct = user.bfpct;
+    let totalChange = 0;
+    let cycleNum = 0;
+    let recalcAccum = 0;
+    
+    let currentCycleChange = cycleChange;
+    let currentRestCals = user.restcals;
+    let currentWorkoutCals = user.workoutcals;
+    let currentTdee = user.tdee;
+    
+    // Add initial row
+    projectionData.push({
+        date: formatDate(currentDate),
+        cycle: cycleNum,
+        days: 0,
+        weight: currentWeight.toFixed(1),
+        change: 0,
+        total: 0,
+        bfpct: currentBfpct > 0 ? currentBfpct.toFixed(1) : '--'
+    });
+    
+    // Project until goal is reached
+    while (Math.abs(totalChange) < Math.abs(goalAmount)) {
+        cycleNum++;
+        currentDate = new Date(currentDate.getTime() + cycleDays * 24 * 60 * 60 * 1000);
+        
+        // Check if recalculation needed
+        if (recalcEvery > 0 && Math.abs(recalcAccum) >= recalcEvery) {
+            // Recalculate TDEE based on new weight
+            const tempUser = Object.assign(Object.create(Object.getPrototypeOf(user)), user);
+            tempUser.weight = currentWeight;
+            tempUser.lbm = currentLbm;
+            tempUser.fat = currentFat;
+            tempUser.bfpct = currentBfpct;
+            tempUser.calcBmr();
+            currentTdee = tempUser.tdee;
+            
+            const restPct = parseFloat(inputRestTdeePct.value) || 0;
+            const workPct = parseFloat(inputWorkoutTdeePct.value) || 0;
+            currentRestCals = currentTdee * (1 + restPct / 100);
+            currentWorkoutCals = currentTdee * (1 + workPct / 100);
+            
+            if (maintainRate) {
+                // Adjust calories to maintain change rate
+                const newCycleTdee = currentTdee * cycleDays;
+                const targetCycleCals = newCycleTdee + (cycleCalDiff);
+                const currentCycleCals = (cycleRestDays * currentRestCals) + (cycleWorkouts * currentWorkoutCals);
+                const diff = targetCycleCals - currentCycleCals;
+                
+                const restRatio = currentRestCals / currentWorkoutCals;
+                const restAdj = diff * restRatio / (cycleRestDays + cycleWorkouts * restRatio);
+                const workAdj = diff / cycleWorkouts - restAdj * cycleRestDays / cycleWorkouts;
+                
+                currentRestCals += restAdj;
+                currentWorkoutCals += workAdj;
+            }
+            
+            const newCycleCals = (cycleRestDays * currentRestCals) + (cycleWorkouts * currentWorkoutCals);
+            const newCycleCalDiff = newCycleCals - (currentTdee * cycleDays);
+            currentCycleChange = user.metric ? (newCycleCalDiff / 3500 / 2.2) : (newCycleCalDiff / 3500);
+            
+            recalcAccum = 0;
+        }
+        
+        totalChange += currentCycleChange;
+        recalcAccum += currentCycleChange;
+        currentWeight += currentCycleChange;
+        
+        // Update body composition if BF% is known
+        if (user.bfpct > 0) {
+            // Assume 90% fat loss, 10% muscle loss (or reverse for gain)
+            const fatLossPct = cycleCalDiff < 0 ? 0.9 : 0.1;
+            currentLbm += currentCycleChange * (1 - fatLossPct);
+            currentFat = currentWeight - currentLbm;
+            currentBfpct = (currentFat / currentWeight) * 100;
+        }
+        
+        projectionData.push({
+            date: formatDate(currentDate),
+            cycle: cycleNum,
+            days: cycleNum * cycleDays,
+            weight: currentWeight.toFixed(1),
+            change: currentCycleChange.toFixed(2),
+            total: totalChange.toFixed(2),
+            bfpct: currentBfpct > 0 ? currentBfpct.toFixed(1) : '--'
+        });
+        
+        // Safety limit
+        if (cycleNum > 100) break;
+    }
+    
+    // Update summary
+    const totalDays = cycleNum * cycleDays;
+    spanDaysNeeded.textContent = totalDays.toString();
+    spanEndDate.textContent = formatDate(currentDate);
+    
+    // Render table
+    goalTableBody.innerHTML = '';
+    projectionData.forEach(row => {
+        const tr = document.createElement('tr');
+        const changeClass = parseFloat(row.change) < 0 ? 'negative' : parseFloat(row.change) > 0 ? 'positive' : '';
+        tr.innerHTML = `
+            <td>${row.date}</td>
+            <td>${row.cycle}</td>
+            <td>${row.days}</td>
+            <td>${row.weight}</td>
+            <td class="${changeClass}">${row.change}</td>
+            <td class="${changeClass}">${row.total}</td>
+            <td>${row.bfpct}</td>
+        `;
+        goalTableBody.appendChild(tr);
+    });
+}
+
+function formatDate(date: Date): string {
+    return `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`;
 }
 
 init()

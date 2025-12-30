@@ -415,6 +415,76 @@ input[type=range] {
     font-size: 1.1rem;
 }
 
+/* Goals Tab Styles */
+.goal-summary {
+    display: flex;
+    gap: 2rem;
+    padding: 1rem;
+    background: var(--bg);
+    border-radius: 8px;
+    margin-top: 1rem;
+}
+
+.goal-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.goal-label {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+}
+
+.goal-value {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--primary);
+}
+
+.table-container {
+    overflow-x: auto;
+    margin-top: 1rem;
+}
+
+.goal-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+}
+
+.goal-table th {
+    background: var(--bg);
+    padding: 0.75rem;
+    text-align: left;
+    font-weight: 600;
+    color: var(--text-muted);
+    border-bottom: 2px solid var(--border);
+}
+
+.goal-table td {
+    padding: 0.75rem;
+    border-bottom: 1px solid var(--border);
+}
+
+.goal-table tbody tr:hover {
+    background: var(--bg);
+}
+
+.goal-table .positive {
+    color: var(--warning);
+}
+
+.goal-table .negative {
+    color: var(--success);
+}
+
+input[type="checkbox"] {
+    width: auto;
+    margin-right: 0.5rem;
+}
+
 @media (max-width: 600px) {
   .input-grid, .results-grid, .split-cards {
     grid-template-columns: 1fr;
