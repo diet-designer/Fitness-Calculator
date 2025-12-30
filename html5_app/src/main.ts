@@ -394,7 +394,7 @@ function updateSlidersFromCalculated() {
     spanWorkoutFVal.textContent = wF + 'g';
 }
 
-function updatePieChart(element: HTMLElement, pPct: number, cPct: number, fPct: number) {
+function updatePieChart(element: HTMLElement, pPct: number, cPct: number) {
     const pEnd = pPct * 3.6;
     const cEnd = pEnd + (cPct * 3.6);
     
@@ -420,15 +420,13 @@ function renderMacros() {
     updatePieChart(
         restPieChart,
         user.restCollection[0].pct,
-        user.restCollection[1].pct,
-        user.restCollection[2].pct
+        user.restCollection[1].pct
     );
     
     updatePieChart(
         workoutPieChart,
         user.workoutCollection[0].pct,
-        user.workoutCollection[1].pct,
-        user.workoutCollection[2].pct
+        user.workoutCollection[1].pct
     );
 }
 
